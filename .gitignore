@@ -1,0 +1,5 @@
+*.csv
+*_sdf
+__pycache__
+*.txt
+data_*
