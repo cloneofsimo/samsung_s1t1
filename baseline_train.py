@@ -142,11 +142,11 @@ def test(loader):
 
 import time
 
+now = time.time()
 for epoch in range(1, 171):
     train()
-    now = time.time()
     train_mae = test(train_loader)
     test_mae = test(val_loader)
     print(
-        f"Epoch: {epoch:03d}, Train MAE: {train_mae:.7f}, Test MAE: {test_mae:.7f} : Total Time {time.time() - now : 2f}"
+        f"Epoch: {epoch:03d}, Train MAE: {train_mae:.7f}, Test MAE: {test_mae:.7f}, Total Time {time.time() - now : 2f}"
     )

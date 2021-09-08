@@ -21,5 +21,5 @@ for i, (train_index, test_index) in enumerate(kf.split(df)):
 
     train_df = df.iloc[train_index]
     test_df = df.iloc[test_index]
-    train_df.to_csv(O_PATH + "/train.txt", index=False, header=False, sep=" ")
-    test_df.to_csv(O_PATH + "/val.txt", index=False, header=False, sep=" ")
+    train_df.to_csv(O_PATH + "/data_train.txt", index=False, header=False, sep=" ")
+    test_df.to_csv(O_PATH + "/data_val.txt", index=False, header=False, sep=" ")
