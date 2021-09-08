@@ -141,12 +141,19 @@ class ChemDataModule(pl.LightningDataModule):
 
 # Training
 import argparse
+from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
+
+checkpoint_callback = ModelCheckpoint(
+    monitor='val_mae_loss',
+    dirpath='checkpoints',
+    filename='sample-gnn-{epoch:02d}-{val_mae_loss:.2f}'
+)
 
 parser = argparse.ArgumentParser()
 parser = pl.Trainer.add_argparse_args(parser)
 args = parser.parse_args()
 
-trainer = pl.Trainer.from_argparse_args(args)
+trainer = pl.Trainer.from_argparse_args(args, callbacks=[checkpoint_callback])
 model = GNNRegressor()
 dm = ChemDataModule()
 
