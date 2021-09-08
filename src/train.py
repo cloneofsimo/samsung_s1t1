@@ -103,7 +103,14 @@ class GNNRegressor(pl.LightningModule):
     
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.model.parameters(), lr=0.0002)
-        return optimizer
+        lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer, mode='min', patience=5, factor=0.5, verbose=True
+        )
+        return {
+            'optimizer': optimizer,
+            'lr_scheduler': lr_scheduler,
+            'monitor': 'val_loss'
+        }
 
 # DataLoader Init
 from mol_dataset import BaselineDataset
@@ -139,15 +146,23 @@ class ChemDataModule(pl.LightningDataModule):
     def test_dataloader(self):
         return DataLoader(self.test_dataset, batch_size=self.batch_size, shuffle=False)
 
-# Training
-import argparse
+if __name__ == "__main__":
+    # Training
+    import argparse
+    from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 
-parser = argparse.ArgumentParser()
-parser = pl.Trainer.add_argparse_args(parser)
-args = parser.parse_args()
+    checkpoint_callback = ModelCheckpoint(
+        monitor='val_mae_loss',
+        dirpath='checkpoints',
+        filename='sample-gnn-{epoch:02d}-{val_mae_loss:.3f}'
+    )
 
-trainer = pl.Trainer.from_argparse_args(args)
-model = GNNRegressor()
-dm = ChemDataModule()
+    parser = argparse.ArgumentParser()
+    parser = pl.Trainer.add_argparse_args(parser)
+    args = parser.parse_args()
 
-trainer.fit(model, dm)
+    trainer = pl.Trainer.from_argparse_args(args, callbacks=[checkpoint_callback])
+    model = GNNRegressor()
+    dm = ChemDataModule()
+
+    trainer.fit(model, dm)
