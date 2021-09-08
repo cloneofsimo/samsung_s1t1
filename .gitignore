@@ -5,3 +5,4 @@ __pycache__
 data_*
 lightning_logs/
 checkpoints/
+outputs/

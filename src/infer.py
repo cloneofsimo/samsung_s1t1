@@ -22,6 +22,6 @@ for x in dm.test_dataloader():
     y = model(x)
     ans += list(y.view(-1).detach().numpy())
 
-submission = pd.read_csv('../../raw/sample_submission.csv')
+submission = pd.read_csv('../sample_submission.csv')
 submission['ST1_GAP(eV)'] = ans
 submission.to_csv('submission.csv', index=False)
