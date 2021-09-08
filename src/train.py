@@ -103,7 +103,14 @@ class GNNRegressor(pl.LightningModule):
     
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.model.parameters(), lr=0.0002)
-        return optimizer
+        lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer, mode='min', patience=5, factor=0.5, verbose=True
+        )
+        return {
+            'optimizer': optimizer,
+            'lr_scheduler': lr_scheduler,
+            'monitor': 'val_loss'
+        }
 
 # DataLoader Init
 from mol_dataset import BaselineDataset
