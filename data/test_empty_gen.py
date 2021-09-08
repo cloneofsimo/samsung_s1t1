@@ -1,11 +1,14 @@
 import pandas as pd
+import os
 
-
-O_PATH = "./split_0"
-I_PATH = "./train.csv"
+I_PATH = "./test.csv"
 
 df = pd.read_csv(I_PATH)
 df["gap"] = 0
 
 df = df[["SMILES", "gap"]]
-df.to_csv(O_PATH + "/data_test.txt", index=False, header=False, sep=" ")
+for split in range(5):
+    O_PATH = f'./split_{split}'
+    os.makedirs(O_PATH, exist_ok=True)
+
+    df.to_csv(O_PATH + "/data_test.txt", index=False, header=False, sep=" ")
