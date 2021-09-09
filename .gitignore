@@ -6,3 +6,7 @@ data_*
 lightning_logs/
 checkpoints/
 outputs/
+.vscode
+.git
+.gitignore
+qm9m

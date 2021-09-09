@@ -1,13 +1,13 @@
 opt:
-  lr: 0.0001
+  lr: 0.001
   name: "adam"
   weight_decay: 0.0000001
   lr_sch: "reduce_on_plateau"
 
 
-batch_size: 128
+batch_size: 512
 data_dir: "/home/simo/dl/comp2021/samsung_s1t1/data"
-num_workers: 10
+num_workers: 25
 log_dir: "logs"
 checkpoint_dir: "checkpoints"
 check_val_freq: 1

@@ -1,7 +1,7 @@
 import hydra
 from models.pl_wrapped.supervised_regression import BaselineSupervisedRegressor
 from omegaconf import DictConfig
-from dataset.s1t1module import ChemDataModule
+from dataset.qm9module import QM9DataModule
 
 from pytorch_lightning import Trainer, callbacks
 from pytorch_lightning import loggers as pl_loggers
@@ -17,9 +17,9 @@ def main(cfg: DictConfig):
     fold_idx = 0
 
     pl_model = BaselineSupervisedRegressor(
-        cfg.trainer.opt, cfg.model, cfg.trainer.criterion, 1
+        cfg.trainer.opt, cfg.model, cfg.trainer.criterion, 19
     )
-    datam = ChemDataModule(cfg.trainer, fold_idx=fold_idx)
+    datam = QM9DataModule(cfg.trainer, fold_idx=fold_idx)
     logger = pl_loggers.TensorBoardLogger(save_dir=cfg.trainer.log_dir)
     checkpoint_callback = callbacks.ModelCheckpoint(
         monitor="val_loss",
@@ -30,7 +30,7 @@ def main(cfg: DictConfig):
     early_stop_callback = EarlyStopping(
         monitor="val_loss",
         min_delta=0.00,
-        patience=10,
+        patience=20,
         verbose=True,
         mode="min",
     )
@@ -38,7 +38,8 @@ def main(cfg: DictConfig):
     trainer = Trainer(
         # accelerator="ddp",
         # precision=16,
-        # resume_from_checkpoint= "/home/simo/dl/comp2021/samsung_s1t1/src/outputs/2021-09-08/20-31-04/checkpoints0/epoch=109-step=20899.ckpt",
+        # gradient_clip_val=5,
+        resume_from_checkpoint="/home/simo/dl/comp2021/samsung_s1t1/src/outputs/2021-09-09/20-42-30/checkpoints0/epoch=94-step=9689.ckpt",
         max_epochs=cfg.trainer.epochs,
         callbacks=[checkpoint_callback, early_stop_callback],
         default_root_dir=cfg.trainer.log_dir,
