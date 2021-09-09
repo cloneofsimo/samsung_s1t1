@@ -11,7 +11,7 @@ from ..core.gat import GAT
 criterions = {
     'mse': nn.MSELoss(),
     'l1': nn.L1Loss(),
-    'sl1': nn.SmoothL1Loss(beta = 0.5),
+    'sl1': nn.SmoothL1Loss(beta = 0.002),
 }
 
 
@@ -64,7 +64,7 @@ class BaselineSupervisedRegressor(pl.LightningModule):
         optimizer = torch.optim.Adam(self.model.parameters(), lr = self.optconf.lr)
 
         lr_scheduler = lr_sch[self.optconf.lr_sch](
-            optimizer, mode='min', patience=5, factor=0.5, verbose=True
+            optimizer, mode='min', patience=10, factor=0.7, verbose=True
         )
         return {
             'optimizer': optimizer,

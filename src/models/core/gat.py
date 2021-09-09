@@ -11,7 +11,7 @@ class ResGraphModule(nn.Module):
     def __init__(self, in_channels, out_channels, edge_channels, heads = 8, dropout = 0.2, residual = True):
         super(ResGraphModule, self).__init__()
 
-        self.conv = TransformerConv(in_channels, out_channels, head = heads, dropout = dropout, edge_dim = edge_channels)
+        self.conv = TransformerConv(in_channels, out_channels, heads = heads, dropout = dropout, edge_dim = edge_channels, concat = False)
         self.relu = nn.ReLU()
         self.residual = residual
 
@@ -41,7 +41,7 @@ class GAT(nn.Module):
 
         self.main = gnn.Sequential(
             "x, edge_index, edge_attr",
-            [
+            
                 
                 [
                     (
@@ -50,13 +50,13 @@ class GAT(nn.Module):
                     )
                     for i in range(n_layers)
                 ],
-            ],
+            
         )
 
         self.head = nn.Sequential(
             nn.Linear(n_width(n_layers) * hidden_channels, n_ff),
             nn.GELU(),
-            nn.Dropout(p = dropout),
+            nn.Dropout(p = 0.05),
             nn.Linear(n_ff, n_ydim),
         )
 
