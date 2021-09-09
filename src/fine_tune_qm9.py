@@ -24,7 +24,8 @@ class FeatureExtractorFreezeUnfreeze(callbacks.BaseFinetuning):
     def finetune_function(self, pl_module, current_epoch, optimizer, optimizer_idx):
         # When `current_epoch` is 10, feature_extractor will start training.
         if current_epoch == self._unfreeze_at_epoch:
-            optimizer.lr = optimizer.lr * 0.05
+            for g in optimizer.param_groups:
+                g["lr"] = 0.0001
             self.unfreeze_and_add_param_group(
                 modules=pl_module.model.main,
                 optimizer=optimizer,
@@ -49,7 +50,7 @@ def main(cfg: DictConfig):
     early_stop_callback = EarlyStopping(
         monitor="val_loss",
         min_delta=0.00,
-        patience=8,
+        patience=15,
         verbose=True,
         mode="min",
     )

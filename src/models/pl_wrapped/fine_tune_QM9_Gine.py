@@ -41,7 +41,7 @@ class FineTuneRegressor(pl.LightningModule):
         self.model.head = nn.Sequential(
             nn.Linear(self.model.head[0].in_features, 1024),
             nn.GELU(),
-            nn.Dropout(p=0.05),
+            # nn.Dropout(p=0.05),
             nn.Linear(1024, n_ydim),
         )
 
@@ -83,11 +83,6 @@ class FineTuneRegressor(pl.LightningModule):
             filter(lambda p: p.requires_grad, self.parameters()), lr=self.optconf.lr
         )
 
-        lr_scheduler = lr_sch[self.optconf.lr_sch](
-            optimizer, mode="min", patience=15, factor=0.5, verbose=True
-        )
         return {
             "optimizer": optimizer,
-            "lr_scheduler": lr_scheduler,
-            "monitor": "val_loss",
         }
