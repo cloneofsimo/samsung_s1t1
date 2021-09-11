@@ -1,18 +1,18 @@
 opt:
-  lr: 0.001
+  lr: 0.0001
   name: "adam"
   weight_decay: 0.0000001
   lr_sch: "reduce_on_plateau"
 
 
-batch_size: 512
+batch_size: 64
 data_dir: "/home/simo/dl/comp2021/samsung_s1t1/data"
 num_workers: 25
 log_dir: "logs"
 checkpoint_dir: "checkpoints"
 check_val_freq: 1
 fast_dev_run: False
-epochs: 300
+epochs: 1000
 gpus: [0]
 save_top_k: 3
 

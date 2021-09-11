@@ -55,14 +55,15 @@ def main(cfg: DictConfig):
         mode="min",
     )
 
-    finetune_callback = FeatureExtractorFreezeUnfreeze(unfreeze_at_epoch=20)
+    finetune_callback = FeatureExtractorFreezeUnfreeze(unfreeze_at_epoch=10)
 
     trainer = Trainer(
         # accelerator="ddp",
         # precision=16,
-        # resume_from_checkpoint="/home/simo/dl/comp2021/samsung_s1t1/src/outputs/2021-09-10/01-58-09/checkpoints0/epoch=299-step=30599.ckpt",
+        resume_from_checkpoint="/home/simo/dl/comp2021/samsung_s1t1/src/outputs/2021-09-10/05-16-37/checkpoints0/epoch=161-step=15389.ckpt",
         max_epochs=cfg.trainer.epochs,
-        callbacks=[checkpoint_callback, early_stop_callback, finetune_callback],
+        callbacks=[checkpoint_callback, finetune_callback],
+        # callbacks=[checkpoint_callback, finetune_callback],
         default_root_dir=cfg.trainer.log_dir,
         fast_dev_run=cfg.trainer.fast_dev_run,
         gpus=cfg.trainer.gpus,

@@ -1,7 +1,7 @@
-name: "gine"
-hidden_channels: 1024
-grow_size: 1.0
-n_layers: 12
-n_ff: 1024
-residual: True
+name: gine
+hidden_channels: 128
+grow_size: 1.4
+n_layers: 10
+n_ff: 512
+residual: true
 dropout: 0.05

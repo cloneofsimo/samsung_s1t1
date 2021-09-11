@@ -30,7 +30,7 @@ def main(cfg: DictConfig):
     early_stop_callback = EarlyStopping(
         monitor="val_loss",
         min_delta=0.00,
-        patience=10,
+        patience=40,
         verbose=True,
         mode="min",
     )
@@ -38,7 +38,7 @@ def main(cfg: DictConfig):
     trainer = Trainer(
         # accelerator="ddp",
         # precision=16,
-        # resume_from_checkpoint= "/home/simo/dl/comp2021/samsung_s1t1/src/outputs/2021-09-08/20-31-04/checkpoints0/epoch=109-step=20899.ckpt",
+        # resume_from_checkpoint="/home/simo/dl/comp2021/samsung_s1t1/src/outputs/2021-09-10/06-00-29/checkpoints0/epoch=129-step=6239.ckpt",
         max_epochs=cfg.trainer.epochs,
         callbacks=[checkpoint_callback, early_stop_callback],
         default_root_dir=cfg.trainer.log_dir,
@@ -64,7 +64,7 @@ def infer(cfg: DictConfig):
         cfg.trainer.opt, cfg.model, cfg.trainer.criterion, 1
     )
 
-    checkpoint_path = "/home/simo/dl/comp2021/samsung_s1t1/src/outputs/2021-09-08/21-31-44/checkpoints0/epoch=131-step=25079.ckpt"
+    checkpoint_path = "/home/simo/dl/comp2021/samsung_s1t1/src/outputs/2021-09-10/17-10-39/checkpoints0/epoch=152-step=7343.ckpt"
     state_dict = torch.load(checkpoint_path)["state_dict"]
     new_state_dict = {}
 
@@ -92,5 +92,5 @@ def infer(cfg: DictConfig):
 
 
 if __name__ == "__main__":
-    main()
-    # infer()
+    # main()
+    infer()
