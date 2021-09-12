@@ -92,5 +92,5 @@ def infer(cfg: DictConfig):
 
 
 if __name__ == "__main__":
-    # main()
-    infer()
+    main()
+    # infer()

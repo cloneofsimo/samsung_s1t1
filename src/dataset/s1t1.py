@@ -105,3 +105,23 @@ class BaselineDataset(InMemoryDataset):
 
         torch.save(self.collate(data_list), self.processed_paths[0])
 
+
+def deg_hist():
+    # print degree histogram of the dataset
+
+    dataset = BaselineDataset(
+        root="/home/simo/dl/comp2021/samsung_s1t1/data/data_train_0",
+        dataset_path="/home/simo/dl/comp2021/samsung_s1t1/data/split_0/data_train.txt",
+    )
+    from torch_geometric.utils import degree
+
+    deg_sets = []
+    for data in dataset[:100000]:
+        deg_sets.append((data.edge_index.flatten().bincount() / 2).round().long())
+
+    deg_sets = torch.cat(deg_sets, dim=0).flatten().bincount()
+    print(deg_sets)
+
+
+if __name__ == "__main__":
+    deg_hist()

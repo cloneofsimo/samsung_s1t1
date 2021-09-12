@@ -5,6 +5,8 @@ import pytorch_lightning as pl
 import numpy as np
 from ..core.gine import GINE
 from ..core.gat import GAT
+from ..core.gatedgcn import GatedGCN
+from ..core.pna import PNA
 
 
 criterions = {
@@ -14,7 +16,7 @@ criterions = {
 }
 
 
-models = {"gine": GINE, "gat": GAT}
+models = {"gine": GINE, "gat": GAT, "gatedgcn": GatedGCN, "pna": PNA}
 
 lr_sch = {
     "reduce_on_plateau": torch.optim.lr_scheduler.ReduceLROnPlateau,
