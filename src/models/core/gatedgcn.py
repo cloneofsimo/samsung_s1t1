@@ -7,33 +7,36 @@ from torch_geometric.nn import GatedGraphConv
 from torch_geometric.nn import global_mean_pool, global_add_pool
 import math
 
+
 class PseudoIdentity(nn.Module):
     def __init__(self, in_channels, out_channels, bias):
         super().__init__()
-        assert out_channels >= in_channels
-        self.partial_linear = nn.Linear(in_channels, out_channels - in_channels, bias = bias)
-    def forward(self,x):
-        return torch.cat([self.partial_linear(x), x], dim = -1)
-    
-        
+        assert out_channels > in_channels
+        self.partial_linear = nn.Linear(
+            in_channels, out_channels - in_channels, bias=bias
+        )
+
+    def forward(self, x):
+        return torch.cat([self.partial_linear(x), x], dim=-1)
+
 
 class ResGraphModule(nn.Module):
     def __init__(self, in_channels, out_channels, edge_channels, residual=False):
         super(ResGraphModule, self).__init__()
 
-        self.conv = GatedGraphConv(out_channels= out_channels, num_layers= 1, aggr = 'add')
-    
+        self.conv = GatedGraphConv(out_channels=out_channels, num_layers=1, aggr="add")
+
         self.relu = nn.ReLU()
         self.residual = residual
 
         self.edge_lin = nn.Linear(edge_channels, in_channels, bias=False)
         self.alpha = 0.5
-        
+
         if residual:
             if in_channels == out_channels:
                 self.res_lin = nn.Identity()
             else:
-                self.res_lin = PseudoIdentity(in_channels, out_channels, bias = False)
+                self.res_lin = PseudoIdentity(in_channels, out_channels, bias=False)
 
     def forward(self, x, edge_index, edge_attr):
         x_ = x

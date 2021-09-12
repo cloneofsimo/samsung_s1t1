@@ -60,7 +60,7 @@ class BaselineSupervisedRegressor(pl.LightningModule):
         optimizer = torch.optim.Adam(self.model.parameters(), lr=self.optconf.lr)
 
         lr_scheduler = lr_sch[self.optconf.lr_sch](
-            optimizer, mode="min", patience=10, factor=0.7, verbose=True
+            optimizer, mode="min", patience=10, factor=0.5, verbose=True, min_lr=1e-5
         )
         return {
             "optimizer": optimizer,

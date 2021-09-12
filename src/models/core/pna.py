@@ -6,7 +6,7 @@ from torch import Tensor
 from torch.nn import ModuleList, Sequential, Linear, ReLU
 from torch_geometric.nn.conv import MessagePassing
 from torch_geometric.nn.inits import reset
-from torch_geometric.nn import global_add_pool
+from torch_geometric.nn import global_add_pool, global_mean_pool
 from torch_geometric.utils import degree
 import torch.nn as nn
 import torch_geometric.nn as gnn
@@ -139,6 +139,7 @@ class PNAConv(MessagePassing):
         post_layers: int = 1,
         divide_input: bool = False,
         residual: bool = False,
+        batchnorm: bool = False,
         **kwargs,
     ):
 
@@ -157,6 +158,9 @@ class PNAConv(MessagePassing):
         self.edge_dim = edge_dim
         self.towers = towers
         self.divide_input = divide_input
+        self.batchnorm = batchnorm
+        if self.batchnorm:
+            self.bn = nn.BatchNorm1d(in_channels)
 
         self.F_in = in_channels // towers if divide_input else in_channels
         self.F_out = self.out_channels // towers
@@ -203,6 +207,9 @@ class PNAConv(MessagePassing):
     def forward(
         self, x: Tensor, edge_index: Adj, edge_attr: OptTensor = None
     ) -> Tensor:
+
+        if self.batchnorm:
+            x = self.bn(x)
 
         x_ = x
 
@@ -368,6 +375,7 @@ class PNA(nn.Module):
         n_ydim=1,
         divide_input_first=False,
         divide_input_last=True,
+        batchnorm=True,
     ):
         super(PNA, self).__init__()
 
@@ -390,6 +398,7 @@ class PNA(nn.Module):
                         edge_dim=hidden_channels,
                         deg=self.deg,
                         residual=residual,
+                        batchnorm=batchnorm,
                         divide_input=divide_input_first,
                         towers=towers,
                         aggregators=["mean", "max", "min", "std"],
@@ -406,6 +415,7 @@ class PNA(nn.Module):
             edge_dim=hidden_channels,
             residual=residual,
             deg=self.deg,
+            batchnorm=batchnorm,
             divide_input=divide_input_last,
             towers=towers,
             aggregators=["mean", "max", "min", "std"],
@@ -413,10 +423,7 @@ class PNA(nn.Module):
         )
 
         self.head = nn.Sequential(
-            nn.Linear(hidden_channels, n_ff),
-            nn.GELU(),
-            nn.Dropout(p=dropout),
-            nn.Linear(n_ff, n_ydim),
+            nn.Linear(hidden_channels, n_ydim),
         )
 
     def forward(self, x, edge_index, edge_attr, batch):
@@ -424,7 +431,7 @@ class PNA(nn.Module):
         edge_attr = self.edge_emb(edge_attr)
         x = self.main(x, edge_index, edge_attr)
         x = self.main_o(x, edge_index, edge_attr)
-        x = global_add_pool(x, batch)
+        x = global_mean_pool(x, batch)
         x = self.head(x)
 
         return x
