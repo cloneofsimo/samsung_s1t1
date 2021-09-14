@@ -140,6 +140,7 @@ class PNAConv(MessagePassing):
         divide_input: bool = False,
         residual: bool = False,
         batchnorm: bool = False,
+        graphnorm: bool = False,
         **kwargs,
     ):
 
@@ -159,8 +160,12 @@ class PNAConv(MessagePassing):
         self.towers = towers
         self.divide_input = divide_input
         self.batchnorm = batchnorm
+        self.graphnorm = graphnorm
         if self.batchnorm:
             self.bn = nn.BatchNorm1d(in_channels)
+
+        if self.graphnorm:
+            self.gn = gnn.GraphNorm(in_channels)
 
         self.F_in = in_channels // towers if divide_input else in_channels
         self.F_out = self.out_channels // towers
@@ -205,11 +210,14 @@ class PNAConv(MessagePassing):
         self.lin.reset_parameters()
 
     def forward(
-        self, x: Tensor, edge_index: Adj, edge_attr: OptTensor = None
+        self, x: Tensor, edge_index: Adj, edge_attr: OptTensor = None, batch=None
     ) -> Tensor:
 
         if self.batchnorm:
             x = self.bn(x)
+
+        if self.graphnorm:
+            x = self.gn(x, batch)
 
         x_ = x
 
@@ -376,6 +384,7 @@ class PNA(nn.Module):
         divide_input_first=False,
         divide_input_last=True,
         batchnorm=True,
+        graphnorm=True,
     ):
         super(PNA, self).__init__()
 
@@ -389,7 +398,7 @@ class PNA(nn.Module):
         degset = [item for sublist in degset for item in sublist]
         self.deg = torch.tensor(degset, dtype=torch.float)
         self.main = gnn.Sequential(
-            "x, edge_index, edge_attr",
+            "x, edge_index, edge_attr, batch",
             [
                 (
                     PNAConv(
@@ -399,12 +408,13 @@ class PNA(nn.Module):
                         deg=self.deg,
                         residual=residual,
                         batchnorm=batchnorm,
+                        graphnorm=(graphnorm if i > 0 else False),
                         divide_input=divide_input_first,
                         towers=towers,
                         aggregators=["mean", "max", "min", "std"],
                         scalers=["identity", "amplification", "attenuation"],
                     ),
-                    "x, edge_index, edge_attr -> x",
+                    "x, edge_index, edge_attr, batch -> x",
                 )
                 for i in range(n_layers)
             ],
@@ -416,6 +426,7 @@ class PNA(nn.Module):
             residual=residual,
             deg=self.deg,
             batchnorm=batchnorm,
+            graphnorm=graphnorm,
             divide_input=divide_input_last,
             towers=towers,
             aggregators=["mean", "max", "min", "std"],
@@ -423,14 +434,17 @@ class PNA(nn.Module):
         )
 
         self.head = nn.Sequential(
-            nn.Linear(hidden_channels, n_ydim),
+            nn.Linear(hidden_channels, n_ff),
+            nn.GELU(),
+            nn.Dropout(p=dropout),
+            nn.Linear(n_ff, n_ydim),
         )
 
     def forward(self, x, edge_index, edge_attr, batch):
         x = self.vert_emb(x)
         edge_attr = self.edge_emb(edge_attr)
-        x = self.main(x, edge_index, edge_attr)
-        x = self.main_o(x, edge_index, edge_attr)
+        x = self.main(x, edge_index, edge_attr, batch)
+        x = self.main_o(x, edge_index, edge_attr, batch)
         x = global_mean_pool(x, batch)
         x = self.head(x)
 

@@ -1,11 +1,12 @@
 name: pna
-hidden_channels: 16
+hidden_channels: 256
 grow_size: 1
-n_layers: 8
-n_ff: 128
+n_layers: 6
+n_ff: 1024
 residual: true
 dropout: 0.00
-towers : 4
+towers : 8
 divide_input_first : true
 divide_input_last : true
-batchnorm: true
+batchnorm: false
+graphnorm: True

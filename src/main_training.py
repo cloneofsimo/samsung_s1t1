@@ -64,7 +64,7 @@ def infer(cfg: DictConfig):
         cfg.trainer.opt, cfg.model, cfg.trainer.criterion, 1
     )
 
-    checkpoint_path = "/home/simo/dl/comp2021/samsung_s1t1/src/outputs/2021-09-10/17-10-39/checkpoints0/epoch=152-step=7343.ckpt"
+    checkpoint_path = "/home/simo/dl/comp2021/samsung_s1t1/src/outputs/2021-09-12/20-10-56/checkpoints0/epoch=131-step=25079.ckpt"
     state_dict = torch.load(checkpoint_path)["state_dict"]
     new_state_dict = {}
 
