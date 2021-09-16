@@ -1,5 +1,5 @@
-name: gat
-hidden_channels: 128
+name: gat_emb
+hidden_channels: 512
 grow_size: 1
 n_layers: 6
 n_ff: 1024

@@ -4,17 +4,14 @@ import torch
 from torch_geometric.data import InMemoryDataset, Data
 from rdkit import Chem
 from rdkit.Chem.rdchem import BondType as BT
-
 import torch.nn.functional as F
-
 from collections import defaultdict
-
 import numpy as np
-
-from rdkit import Chem
-
 import torch
+import pickle
 
+
+MAX_ITEM = 300
 
 def create_atoms(mol, atom_dict):
     """Transform the atom types in a molecule (e.g., H, C, and O)
@@ -25,7 +22,7 @@ def create_atoms(mol, atom_dict):
     for a in mol.GetAromaticAtoms():
         i = a.GetIdx()
         atoms[i] = (atoms[i], "aromatic")
-    atoms = [atom_dict[a] for a in atoms]
+    atoms = [atom_dict.get(a, MAX_ITEM) for a in atoms]
     return np.array(atoms)
 
 
@@ -43,9 +40,44 @@ def create_ijbonddict(mol, bond_dict):
     return i_jbond_dict
 
 
-def extract_fingerprints(radius, atoms, i_jbond_dict, fingerprint_dict, edge_dict):
+def extract_fingerprints(atoms, i_jbond_dict, fingerprint_dict):
     """Extract the fingerprints from a molecular graph
     based on Weisfeiler-Lehman algorithm.
+    """
+
+    if (len(atoms) == 1):
+        nodes = [fingerprint_dict[a] for a in atoms]
+
+    else:
+        nodes = atoms
+        i_jedge_dict = i_jbond_dict
+
+        """Update each node ID considering its neighboring nodes and edges.
+        The updated node IDs are the fingerprint IDs.
+        """
+        nodes_ = []
+        for i, j_edge in i_jedge_dict.items():
+            
+            neighbors = [(nodes[j], edge) for j, edge in j_edge]
+            fingerprint = (nodes[i], tuple(sorted(neighbors)))
+            _node = fingerprint_dict.get(fingerprint, None)
+            if _node is None: # use the atom itself instead
+                _node = nodes[i]
+            else:
+                # it is fingerprint, so shift it by 20
+                _node += 20
+            nodes_.append(_node)
+
+        nodes = nodes_
+       
+
+    return np.array(nodes)
+
+
+def count_fingerprints(radius, atoms, i_jbond_dict, fingerprint_dict, edge_dict):
+    """Extract & count Fingerprints, keep info on fingerprint_dict.
+    Used for pre-processing the dataset. For fairness, we do not look at the test dataset for fingerprint distribution statistics.
+
     """
 
     if (len(atoms) == 1) or (radius == 0):
@@ -64,6 +96,7 @@ def extract_fingerprints(radius, atoms, i_jbond_dict, fingerprint_dict, edge_dic
             for i, j_edge in i_jedge_dict.items():
                 neighbors = [(nodes[j], edge) for j, edge in j_edge]
                 fingerprint = (nodes[i], tuple(sorted(neighbors)))
+                fingerprint_dict[fingerprint] = fingerprint_dict.get(fingerprint, 0) + 1
                 nodes_.append(fingerprint_dict[fingerprint])
 
             """Also update each edge ID considering
@@ -80,81 +113,6 @@ def extract_fingerprints(radius, atoms, i_jbond_dict, fingerprint_dict, edge_dic
             i_jedge_dict = i_jedge_dict_
 
     return np.array(nodes)
-
-
-def split_dataset(dataset, ratio):
-    """Shuffle and split a dataset."""
-    np.random.seed(1234)  # fix the seed for shuffle.
-    np.random.shuffle(dataset)
-    n = int(ratio * len(dataset))
-    return dataset[:n], dataset[n:]
-
-
-def create_datasets(task, dataset, radius, device):
-
-    dir_dataset = "../dataset/" + task + "/" + dataset + "/"
-
-    """Initialize x_dict, in which each key is a symbol type
-    (e.g., atom and chemical bond) and each value is its index.
-    """
-    atom_dict = defaultdict(lambda: len(atom_dict))
-    bond_dict = defaultdict(lambda: len(bond_dict))
-    fingerprint_dict = defaultdict(lambda: len(fingerprint_dict))
-    edge_dict = defaultdict(lambda: len(edge_dict))
-
-    def create_dataset(filename):
-
-        print(filename)
-
-        """Load a dataset."""
-        with open(dir_dataset + filename, "r") as f:
-            # smiles_property = f.readline().strip().split()
-            data_original = f.read().strip().split("\n")
-
-        """Exclude the data contains '.' in its smiles."""
-        data_original = [data for data in data_original if "." not in data.split()[0]]
-
-        dataset = []
-
-        print(filename, "has", len(data_original), "datas.")
-
-        for data in data_original:
-
-            smiles, property = data.strip().split()
-
-            """Create each data with the above defined functions."""
-            mol = Chem.AddHs(Chem.MolFromSmiles(smiles))
-            atoms = create_atoms(mol, atom_dict)
-            molecular_size = len(atoms)
-            i_jbond_dict = create_ijbonddict(mol, bond_dict)
-            fingerprints = extract_fingerprints(
-                radius, atoms, i_jbond_dict, fingerprint_dict, edge_dict
-            )
-            adjacency = Chem.GetAdjacencyMatrix(mol)
-
-            """Transform the above each data of numpy
-            to pytorch tensor on a device (i.e., CPU or GPU).
-            """
-            fingerprints = torch.LongTensor(fingerprints).to(device)
-            adjacency = torch.FloatTensor(adjacency).to(device)
-            if task == "classification":
-                property = torch.LongTensor([int(property)]).to(device)
-            if task == "regression":
-                property = torch.FloatTensor([[float(property)]]).to(device)
-
-            dataset.append((fingerprints, adjacency, molecular_size, property))
-
-        return dataset
-
-    dataset_train = create_dataset("data_train.txt")
-    dataset_train, dataset_dev = split_dataset(dataset_train, 0.9)
-    dataset_test = create_dataset("data_test.txt")
-
-    dataset_inf = create_dataset("data_inf.txt")
-
-    N_fingerprints = len(fingerprint_dict)
-
-    return dataset_train, dataset_dev, dataset_test, N_fingerprints, dataset_inf
 
 
 class FingerprintDataset(InMemoryDataset):
@@ -190,24 +148,20 @@ class FingerprintDataset(InMemoryDataset):
 
     def process(self):
 
-        types = {
-            "H": 0,
-            "C": 1,
-            "N": 2,
-            "O": 3,
-            "F": 4,
-            "Br": 5,
-            "Cl": 6,
-            "S": 7,
-            "B": 8,
-            "P": 9,
-            "I": 10,
-            "Si": 11,
-            "Ge": 12,
-        }
+        
         bonds = {BT.SINGLE: 0, BT.DOUBLE: 1, BT.TRIPLE: 2, BT.AROMATIC: 3}
         data_list = []
 
+
+        with open("atom_dict.pickle", 'rb') as handle:
+            atom_dict = pickle.load(handle)
+
+        with open("fingerprint_dict_topk.pickle", 'rb') as handle:
+            fingerprint_dict = pickle.load(handle)
+
+        bond_dict = defaultdict(lambda: len(bond_dict))
+   
+ 
         with open(self.dataset_path, "r") as f:
             data = f.read().strip().split("\n")
 
@@ -216,13 +170,20 @@ class FingerprintDataset(InMemoryDataset):
             smiles = line[0]
             target = torch.tensor([float(line[1])])
 
-            mol = Chem.MolFromSmiles(smiles)
-
+            mol = Chem.AddHs(Chem.MolFromSmiles(smiles))
             N = mol.GetNumAtoms()
-            type_idx = []
 
-            for atom in mol.GetAtoms():
-                type_idx.append(types[atom.GetSymbol()])
+            # Create node data
+            atoms = create_atoms(mol, atom_dict)
+
+            i_jbond_dict = create_ijbonddict(mol, bond_dict)
+            fingerprints = extract_fingerprints(
+                atoms, i_jbond_dict, fingerprint_dict
+            )
+
+            x1 = torch.tensor(fingerprints).long()
+
+            # Create Edge data (with edge index)
 
             row, col, edge_type = [], [], []
 
@@ -241,16 +202,14 @@ class FingerprintDataset(InMemoryDataset):
             edge_type = edge_type[perm]
             edge_attr = edge_attr[perm]
 
-            row, col = edge_index
-
-            x1 = F.one_hot(torch.tensor(type_idx), num_classes=len(types)).float()
-
-            # x = torch.cat([x1.to(torch.float), x2], dim=-1)
-
             y = target.unsqueeze(0)
 
             data = Data(edge_index=edge_index, edge_attr=edge_attr, y=y, idx=i, x=x1)
             data_list.append(data)
+
+        print(len(atom_dict))
+        print(len(bond_dict))
+        print(len(fingerprint_dict))
 
         torch.save(self.collate(data_list), self.processed_paths[0])
 
@@ -258,8 +217,8 @@ class FingerprintDataset(InMemoryDataset):
 def deg_hist():
     # print degree histogram of the dataset
 
-    dataset = BaselineDataset(
-        root="/home/simo/dl/comp2021/samsung_s1t1/data/data_train_0",
+    dataset = FingerprintDataset(
+        root="/home/simo/dl/comp2021/samsung_s1t1/data/data_train_fp0",
         dataset_path="/home/simo/dl/comp2021/samsung_s1t1/data/split_0/data_train.txt",
     )
     from torch_geometric.utils import degree

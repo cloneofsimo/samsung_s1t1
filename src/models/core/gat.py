@@ -24,7 +24,7 @@ class ResGraphModule(nn.Module):
         x = self.relu(x) 
         
         if self.residual:
-            return (x + self.res_lin(x_)) / math.sqrt(2)
+            return x + self.res_lin(x_)
         return x
 
 

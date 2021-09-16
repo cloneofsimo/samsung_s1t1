@@ -7,7 +7,9 @@ from ..core.gine import GINE
 from ..core.gat import GAT
 from ..core.gatedgcn import GatedGCN
 from ..core.pna import PNA
-
+from ..core.gine_emb import GINEEmb
+from ..core.gcn_emb import GCNEmb
+from ..core.gat_emb import GATEmb
 
 criterions = {
     "mse": nn.MSELoss(),
@@ -16,7 +18,7 @@ criterions = {
 }
 
 
-models = {"gine": GINE, "gat": GAT, "gatedgcn": GatedGCN, "pna": PNA}
+models = {"gine": GINE, "gat": GAT, "gatedgcn": GatedGCN, "pna": PNA, "gine_emb" : GINEEmb, "gcn_emb" : GCNEmb, "gat_emb" : GATEmb}
 
 lr_sch = {
     "reduce_on_plateau": torch.optim.lr_scheduler.ReduceLROnPlateau,
