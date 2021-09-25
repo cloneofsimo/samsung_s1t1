@@ -3,10 +3,9 @@ hidden_channels: 256
 grow_size: 1.0
 n_layers: 8
 n_ff: 512
-residual: true
+skip_connection: res_init
 dropout: 0.05
 positional: true
-dense_layer: false
 pos_offset: 32
 growth_rate: 32
 edge_mlp: True
