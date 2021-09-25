@@ -1,7 +1,7 @@
 import hydra
-from models.pl_wrapped.supervised_regression import BaselineSupervisedRegressor
+from models.pl_wrapped.supervised_regression_dim_2 import BaselineSupervisedRegressor
 from omegaconf import DictConfig
-from dataset.s1t1_fingerprint_module import FingerprintDataModule
+from dataset.s1t1_fingerprint_module_2 import FingerprintDataModule
 from pytorch_lightning import Trainer, callbacks
 from pytorch_lightning import loggers as pl_loggers
 
@@ -16,7 +16,7 @@ def main(cfg: DictConfig):
     fold_idx = 0
 
     pl_model = BaselineSupervisedRegressor(
-        cfg.trainer.opt, cfg.model, cfg.trainer.criterion, 1
+        cfg.trainer.opt, cfg.model, cfg.trainer.criterion, 2
     )
     datam = FingerprintDataModule(cfg.trainer, fold_idx=fold_idx)
     logger = pl_loggers.TensorBoardLogger(save_dir=cfg.trainer.log_dir)
@@ -60,10 +60,10 @@ def infer(cfg: DictConfig):
     fold_idx = 0
 
     pl_model = BaselineSupervisedRegressor(
-        cfg.trainer.opt, cfg.model, cfg.trainer.criterion, 1
+        cfg.trainer.opt, cfg.model, cfg.trainer.criterion, 2
     )
 
-    checkpoint_path = "/home/simo/dl/comp2021/samsung_s1t1/src/outputs/2021-09-17/04-51-33/checkpoints0/epoch=106-step=20329.ckpt"
+    checkpoint_path = "/home/simo/dl/comp2021/samsung_s1t1/src/outputs/2021-09-17/05-29-08/checkpoints0/epoch=127-step=24319.ckpt"
     state_dict = torch.load(checkpoint_path)["state_dict"]
     new_state_dict = {}
 
@@ -80,8 +80,10 @@ def infer(cfg: DictConfig):
     ans = []
     for x in tqdm(datam.test_dataloader()):
         x = x.to("cuda")
-        y = pl_model(x).relu()
-        ans += list(y.view(-1).detach().cpu().numpy())
+        y = pl_model(x)
+        gap = y[:, 0] - y[:, 1]
+        gap = 0.9 * gap.relu()
+        ans += list(gap.view(-1).detach().cpu().numpy())
 
     submission = pd.read_csv(
         "/home/simo/dl/comp2021/samsung_s1t1/sample_submission.csv"

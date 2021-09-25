@@ -1,5 +1,5 @@
 opt:
-  lr: 0.0001
+  lr: 0.0002
   name: "adam"
   weight_decay: 0.0000001
   lr_sch: "reduce_on_plateau"

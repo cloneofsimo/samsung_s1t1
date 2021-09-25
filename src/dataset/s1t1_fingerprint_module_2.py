@@ -1,4 +1,4 @@
-from .s1t1_fingerprint import FingerprintDataset
+from .s1t1_fingerprint_2 import FingerprintDataset
 from torch_geometric.data import DataLoader
 import pytorch_lightning as pl
 
@@ -13,18 +13,18 @@ class FingerprintDataModule(pl.LightningDataModule):
 
     def setup(self, stage):
         self.train_dataset = FingerprintDataset(
-            root=self.data_path + f"/data_train_{self.fold_idx}_fp",
-            dataset_path=self.data_path + f"/split_{self.fold_idx}/data_train.txt",
+            root=self.data_path + f"/data_train_{self.fold_idx}_fp2",
+            dataset_path=self.data_path + f"/split_{self.fold_idx}_2/data_train.txt",
         )
 
         self.val_dataset = FingerprintDataset(
-            root=self.data_path + f"/data_val_{self.fold_idx}_fp",
-            dataset_path=self.data_path + f"/split_{self.fold_idx}/data_val.txt",
+            root=self.data_path + f"/data_val_{self.fold_idx}_fp2",
+            dataset_path=self.data_path + f"/split_{self.fold_idx}_2/data_val.txt",
         )
 
         self.test_dataset = FingerprintDataset(
-            root=self.data_path + f"/data_test_fp",
-            dataset_path=self.data_path + f"/split_{self.fold_idx}/data_test.txt",
+            root=self.data_path + f"/data_test_fp2",
+            dataset_path=self.data_path + f"/split_{self.fold_idx}_2/data_test.txt",
         )
 
     def train_dataloader(self):

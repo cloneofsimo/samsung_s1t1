@@ -1,9 +1,9 @@
-from .s1t1_fingerprint import FingerprintDataset
+from .s1t1_sdf import SDFDataset
 from torch_geometric.data import DataLoader
 import pytorch_lightning as pl
 
 
-class FingerprintDataModule(pl.LightningDataModule):
+class SDFDataModule(pl.LightningDataModule):
     def __init__(self, trainconf, fold_idx=0):
         super().__init__()
         self.batch_size = trainconf.batch_size
@@ -12,19 +12,21 @@ class FingerprintDataModule(pl.LightningDataModule):
         self.fold_idx = fold_idx
 
     def setup(self, stage):
-        self.train_dataset = FingerprintDataset(
-            root=self.data_path + f"/data_train_{self.fold_idx}_fp",
-            dataset_path=self.data_path + f"/split_{self.fold_idx}/data_train.txt",
+        self.train_dataset = SDFDataset(
+            dataset_path=self.data_path + f"/split_sdf_{self.fold_idx}/data_train.txt",
+            sdf_path=self.data_path + f"/train_sdf/",
+            train=True,
         )
 
-        self.val_dataset = FingerprintDataset(
-            root=self.data_path + f"/data_val_{self.fold_idx}_fp",
-            dataset_path=self.data_path + f"/split_{self.fold_idx}/data_val.txt",
+        self.val_dataset = SDFDataset(
+            dataset_path=self.data_path + f"/split_sdf_{self.fold_idx}/data_val.txt",
+            sdf_path=self.data_path + f"/train_sdf/",
+            train=False,
         )
 
-        self.test_dataset = FingerprintDataset(
-            root=self.data_path + f"/data_test_fp",
+        self.test_dataset = SDFDataset(
             dataset_path=self.data_path + f"/split_{self.fold_idx}/data_test.txt",
+            sdf_path=self.data_path + f"/train_sdf/",
         )
 
     def train_dataloader(self):

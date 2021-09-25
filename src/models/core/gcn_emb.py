@@ -3,17 +3,22 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch_geometric.nn as gnn
 from torch_geometric.nn import GraphConv, ChebConv
-from torch_geometric.nn import GCNConv, GatedGraphConv, GINConv, GINEConv
+from torch_geometric.nn import GENConv
 from torch_geometric.nn import global_mean_pool, global_add_pool
 import math
 
 MAX_ITEM = 300
 
+
 class ResGraphModule(nn.Module):
     def __init__(self, in_channels, out_channels, edge_channels, residual=False):
         super(ResGraphModule, self).__init__()
 
-        self.conv = GraphConv(nn.Linear(in_channels, out_channels), eps=1e-5)
+        self.conv = GENConv(
+            aggr="softmax",
+            in_channels=in_channels,
+            out_channels=out_channels,
+        )
         self.relu = nn.ReLU()
         self.residual = residual
 
@@ -51,7 +56,7 @@ class GCNEmb(nn.Module):
         def n_width(n):
             return math.floor(pow(grow_size, n) + 1e-2)
 
-        #self.vert_emb = nn.Linear(13, hidden_channels, bias=False)
+        # self.vert_emb = nn.Linear(13, hidden_channels, bias=False)
         self.edge_emb = nn.Linear(4, hidden_channels, bias=False)
 
         self.main = gnn.Sequential(
@@ -70,7 +75,9 @@ class GCNEmb(nn.Module):
             ],
         )
 
-        self.vert_emb = nn.Embedding(MAX_ITEM + 1, hidden_channels, padding_idx= MAX_ITEM)
+        self.vert_emb = nn.Embedding(
+            MAX_ITEM + 1, hidden_channels, padding_idx=MAX_ITEM
+        )
 
         self.head = nn.Sequential(
             nn.Linear(n_width(n_layers) * hidden_channels, n_ff),

@@ -5,10 +5,11 @@ I_PATH = "./test.csv"
 
 df = pd.read_csv(I_PATH)
 df["gap"] = 0
+df["g2"] = 0
 
-df = df[["SMILES", "gap"]]
+df = df[["SMILES", "gap", "g2"]]
 for split in range(5):
-    O_PATH = f"./split_{split}"
+    O_PATH = f"./split_{split}_2"
     os.makedirs(O_PATH, exist_ok=True)
 
     df.to_csv(O_PATH + "/data_test.txt", index=False, header=False, sep=" ")

@@ -27,19 +27,6 @@ def create_atoms(mol, atom_dict):
     return np.array(atoms)
 
 
-def create_atoms_n_update(mol, atom_dict):
-    """Transform the atom types in a molecule (e.g., H, C, and O)
-    into the indices (e.g., H=0, C=1, and O=2).
-    Note that each atom index considers the aromaticity.
-    """
-    atoms = [a.GetSymbol() for a in mol.GetAtoms()]
-    for a in mol.GetAromaticAtoms():
-        i = a.GetIdx()
-        atoms[i] = (atoms[i], "aromatic")
-    atoms = [atom_dict[a] for a in atoms]
-    return np.array(atoms)
-
-
 def create_ijbonddict(mol, bond_dict):
     """Create a dictionary, in which each key is a node ID
     and each value is the tuples of its neighboring node
@@ -182,7 +169,7 @@ class FingerprintDataset(InMemoryDataset):
         for i, line in enumerate(data):
             line = line.split(" ")
             smiles = line[0]
-            target = torch.tensor([float(line[1])])
+            target = torch.tensor([float(line[1]), float(line[2])])
 
             mol = Chem.AddHs(Chem.MolFromSmiles(smiles))
             N = mol.GetNumAtoms()
@@ -220,7 +207,7 @@ class FingerprintDataset(InMemoryDataset):
             data_list.append(data)
 
         print(len(atom_dict))
-        # print(len(bonds_dict))
+        # print(len(bond_dict))
         print(len(fingerprint_dict))
 
         torch.save(self.collate(data_list), self.processed_paths[0])

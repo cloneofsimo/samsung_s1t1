@@ -1,7 +1,7 @@
-name: gine
-hidden_channels: 512
+name: gcn_emb
+hidden_channels: 256
 grow_size: 1.0
-n_layers: 6
+n_layers: 8
 n_ff: 512
 residual: true
 dropout: 0.05
