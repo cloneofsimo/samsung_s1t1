@@ -22,6 +22,7 @@ class ResGraphModule(nn.Module):
         dense_layer=False,
         layer_idx=0,
         growth_rate=32,
+        edge_mlp=False,
     ):
         super(ResGraphModule, self).__init__()
 
@@ -33,18 +34,22 @@ class ResGraphModule(nn.Module):
             in_channels=in_channels,
             out_channels=out_channels,
             num_filters=256,
-            residual=False,
         )
         self.relu = nn.ReLU()
         self.residual = residual
         # self.bn = nn.BatchNorm1d(out_channels)
         self.dense_layer = dense_layer
+        self.edge_mlp = edge_mlp
 
-        self.edge_lin = nn.Linear(edge_channels, in_channels, bias=False)
+        self.edge_mlp = nn.Sequential(
+            nn.ReLU(),
+            nn.Linear(edge_channels + in_channels, in_channels),
+            nn.Sigmoid(),
+        )
 
     def forward(self, x, edge_index, edge_attr, x_pos):
         x_ = x
-        edge_attr = self.edge_lin(edge_attr)
+
         # print(x.shape, edge_index.shape, edge_attr.shape)
         x = self.conv(x, edge_index, edge_attr, x_pos)
         x = self.relu(x)
@@ -54,7 +59,15 @@ class ResGraphModule(nn.Module):
         else:
             x = x + x_
         # print(x.shape)
-        return x
+        if self.edge_mlp:
+            row, col = edge_index
+            edge_attr = (
+                self.edge_mlp(torch.cat([edge_attr, x[row] + x[col]], dim=-1))
+                + edge_attr
+            )
+            return x, edge_attr
+        else:
+            return x
 
 
 class SchEmb(nn.Module):
@@ -72,6 +85,7 @@ class SchEmb(nn.Module):
         dense_layer=False,
         pos_offset=48,
         growth_rate=32,
+        edge_mlp=False,
     ):
         super(SchEmb, self).__init__()
 
@@ -80,6 +94,13 @@ class SchEmb(nn.Module):
 
         # self.vert_emb = nn.Linear(13, hidden_channels, bias=False)
         self.edge_emb = nn.Linear(4, hidden_channels, bias=False)
+
+        self.edge_mlp = edge_mlp
+        if self.edge_mlp:
+
+            RETSTRING = "x, edge_index, edge_attr, x_pos -> x, edge_attr"
+        else:
+            RETSTRING = "x, edge_index, edge_attr, x_pos -> x"
 
         self.main = gnn.Sequential(
             "x, edge_index, edge_attr, x_pos",
@@ -93,8 +114,9 @@ class SchEmb(nn.Module):
                         dense_layer=dense_layer,
                         layer_idx=i,
                         growth_rate=growth_rate,
+                        edge_mlp=edge_mlp,
                     ),
-                    "x, edge_index, edge_attr, x_pos -> x",
+                    RETSTRING,
                 )
                 for i in range(n_layers)
             ],
@@ -110,14 +132,14 @@ class SchEmb(nn.Module):
         )
 
         if dense_layer:
-            feature_readout = n_layers * growth_rate + hidden_channels
+            feature_dim = n_layers * growth_rate + hidden_channels
         else:
-            feature_readout = n_width(n_layers) * hidden_channels
+            feature_dim = n_width(n_layers) * hidden_channels
 
-        # print(feature_readout)
+        # print(feature_dim)
 
         self.head = nn.Sequential(
-            nn.Linear(feature_readout, n_ff),
+            nn.Linear(feature_dim, n_ff),
             nn.GELU(),
             nn.Dropout(p=dropout),
             nn.Linear(n_ff, n_ydim),
@@ -132,7 +154,11 @@ class SchEmb(nn.Module):
             x = torch.cat([x, pos_], dim=-1)
         # print(x.shape)
         edge_attr = self.edge_emb(edge_attr)
-        x = self.main(x, edge_index, edge_attr, pos)
+
+        if self.edge_mlp:
+            x, _ = self.main(x, edge_index, edge_attr, pos)
+        else:
+            x = self.main(x, edge_index, edge_attr, pos)
         # print(x.shape)
         x = global_mean_pool(x, batch)
         # print(x.shape)

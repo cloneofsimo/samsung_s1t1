@@ -99,7 +99,7 @@ class SchDropoutEdgeConv(MessagePassing):
 
         out = self.propagate(edge_index, x=x_, edge_attr=edge_attr)
 
-        return x + out
+        return x + out, edge_attr
 
     def message(self, x_i, x_j, edge_attr):
         # create rotation-invariant filter
