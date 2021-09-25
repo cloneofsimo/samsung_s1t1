@@ -9,7 +9,8 @@ from collections import defaultdict
 import numpy as np
 import torch
 import pickle
-
+import random
+import math
 
 MAX_ITEM = 300
 ATOM_DICT = {
@@ -34,8 +35,26 @@ MAX_ATOM_IDX = 20
 PAD_IDX = 0
 BOND_OFFSET = 22
 CLS_IDX = 40
-
 BOND_DIV = 10.0
+
+
+def Rotate_Phi(pos):
+    # Batch Rotate around z-axis. pos : N, 3
+    phi = random.random() * 3.141592 * 2
+    rot_mat = torch.tensor([[math.cos(phi), -math.sin(phi), 0],
+                        [math.sin(phi), math.cos(phi), 0],
+                        [0, 0, 1]])
+    pos = pos @ rot_mat
+    return pos 
+
+def Rotate_Theta(pos):
+    # Batch Rotate around y-axis. pos : N, 3
+    theta = random.random() * 3.141592 * 2
+    rot_mat = torch.tensor([[math.cos(theta), 0, math.sin(theta)],
+                            [0, 1, 0],
+                            [-math.sin(theta), 0, math.cos(theta)]])
+    pos = pos @ rot_mat
+    return pos
 
 
 class SDFDataset(Dataset):
@@ -76,10 +95,12 @@ class SDFDataset(Dataset):
         # Create Edge data (with edge index)
         atom_list, atom_pos, mol = self._get_sdf_data(idx)
         atom_pos = atom_pos / BOND_DIV
+        atom_pos = atom_pos - atom_pos.mean(dim=0)
 
         if self.train:
-            atom_pos = atom_pos + torch.randn((1, 3)) * 0.5
-            atom_pos = atom_pos * torch.exp(torch.randn((1, 3)) * 0.05)
+            atom_pos = Rotate_Phi(Rotate_Theta(atom_pos))
+            atom_pos = atom_pos + torch.randn((1, 3)) * 0.05
+            #atom_pos = atom_pos * torch.exp(torch.randn((1, 3)) * 0.05)
 
         N = len(atom_list)
 
@@ -117,19 +138,6 @@ class SDFDataset(Dataset):
         )
         return data
 
-    def _get_bonds_idx(self, mol, pos):
-
-        bonds = [b.GetBondType() for b in mol.GetBonds()]
-        bonds_pos = []
-        for bond in mol.GetBonds():
-            start, end = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
-            bonds_pos.append((pos[start] + pos[end]) / 2)
-
-        bonds_pos = torch.stack(bonds_pos)
-        bonds = [BOND_DICT[b] + BOND_OFFSET for b in bonds]
-
-        return bonds, bonds_pos
-
     def _get_sdf_data(self, idx):
         suppl = Chem.SDMolSupplier(self.sdf_paths[idx])
         mols = [mol for mol in suppl if mol is not None]
@@ -144,4 +152,7 @@ class SDFDataset(Dataset):
 
         atoms = [ATOM_DICT.get(a, MAX_ATOM_IDX) + 1 for a in symb]
         pos = torch.stack(pos)
+
+        
+
         return atoms, pos, mol

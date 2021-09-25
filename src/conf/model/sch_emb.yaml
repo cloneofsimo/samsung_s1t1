@@ -9,3 +9,4 @@ positional: true
 dense_layer: false
 pos_offset: 32
 growth_rate: 32
+edge_mlp: True

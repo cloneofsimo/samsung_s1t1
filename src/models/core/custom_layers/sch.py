@@ -56,6 +56,7 @@ class CfConv(MessagePassing):
         feat = (-self.gamma * feat).exp() + self.edge_feat(edge_attr)
         return self.nn(feat) * x_j[:, :-3]
 
+
 class SchDropoutEdgeConv(MessagePassing):
     def __init__(
         self,
@@ -69,21 +70,22 @@ class SchDropoutEdgeConv(MessagePassing):
 
         self.num_filter = num_filters
         self.p = p
-        omeg = [10 * n_channels **(1-2*i/num_filters) for i in range(num_filters)]
+        omeg = [
+            10 * n_channels ** (1 - 2 * i / num_filters) for i in range(num_filters)
+        ]
         self.register_buffer("omeg", torch.tensor(omeg).reshape(1, -1))
         self.gamma = gamma
-
 
         self.nn = nn.Sequential(
             nn.Linear(num_filters * 2 + n_channels * 2, mid_channels),
             nn.GELU(),
             nn.Linear(mid_channels, mid_channels),
             nn.GELU(),
-            nn.Dropout(0.2),
+            nn.Dropout(0.1),
             nn.Linear(mid_channels, n_channels),
         )
 
-        #self.edge_feat = nn.Linear(n_channels, num_filters)
+        # self.edge_feat = nn.Linear(n_channels, num_filters)
 
     def forward(
         self,
@@ -101,13 +103,16 @@ class SchDropoutEdgeConv(MessagePassing):
 
     def message(self, x_i, x_j, edge_attr):
         # create rotation-invariant filter
-        #print(x_i.shape, x_j.shape, edge_attr.shape)
+        # print(x_i.shape, x_j.shape, edge_attr.shape)
         r = torch.norm(x_i[:, -3:] - x_j[:, -3:], p=self.p, dim=-1, keepdim=True)
-        #print(r.mean(), r.std())
+        # print(r.mean(), r.std())
         feat = r.repeat((1, self.num_filter)) * self.omeg
-        feat = torch.cat([torch.sin(feat), torch.cos(feat), edge_attr, x_j[:,:-3]], dim = -1)
+        feat = torch.cat(
+            [torch.sin(feat), torch.cos(feat), edge_attr, x_j[:, :-3]], dim=-1
+        )
 
         return self.nn(feat)
+
 
 class SchNetInteraction(nn.Module):
     def __init__(
@@ -118,7 +123,6 @@ class SchNetInteraction(nn.Module):
         num_filters: int = 16,
         p: float = 2.0,
         gamma: float = 3.0,
-        residual: bool = True,
     ):
         super(SchNetInteraction, self).__init__()
 
@@ -134,7 +138,6 @@ class SchNetInteraction(nn.Module):
         self.atomwise2 = nn.Linear(out_channels, out_channels)
         self.atomwise3 = nn.Linear(out_channels, out_channels)
         self.act = nn.ReLU()
-        self.resiudal = residual
 
     def forward(
         self,
@@ -144,14 +147,10 @@ class SchNetInteraction(nn.Module):
         x_pos: Tensor,
     ) -> Tensor:
 
-        x_r = x
         x = self.atomwise1(x)
         x = self.cfconv(x, edge_index, edge_attr, x_pos)
         x = self.atomwise2(x)
         x = self.act(x)
         x = self.atomwise3(x)
 
-        if self.resiudal:
-            return x + x_r
-        else:
-            return x
+        return x
