@@ -44,7 +44,7 @@ class ResGraphModule(nn.Module):
         self.edge_mlp = nn.Sequential(
             nn.ReLU(),
             nn.Linear(edge_channels + in_channels, in_channels),
-            nn.Sigmoid(),
+            nn.Tanh(),
         )
 
     def forward(self, x, edge_index, edge_attr, x_pos):
