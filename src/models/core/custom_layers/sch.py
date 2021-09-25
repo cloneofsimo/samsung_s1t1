@@ -56,7 +56,7 @@ class CfConv(MessagePassing):
         feat = (-self.gamma * feat).exp() + self.edge_feat(edge_attr)
         return self.nn(feat) * x_j[:, :-3]
 
-class DropoutEdgeConv(MessagePassing):
+class SchDropoutEdgeConv(MessagePassing):
     def __init__(
         self,
         n_channels: int,
@@ -122,7 +122,7 @@ class SchNetInteraction(nn.Module):
     ):
         super(SchNetInteraction, self).__init__()
 
-        self.cfconv = DropoutEdgeConv(
+        self.cfconv = SchDropoutEdgeConv(
             out_channels,
             mid_channels,
             num_filters,
