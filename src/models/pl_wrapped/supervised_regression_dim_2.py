@@ -48,7 +48,7 @@ class BaselineSupervisedRegressor(pl.LightningModule):
         self.optconf = optconf
 
     def forward(self, x):
-        yh = self.model(x.x, x.edge_index, x.edge_attr, x.batch, x.pos)
+        yh = self.model(x.x, x.edge_index, x.edge_attr, x.batch, x.pos, x.ar)
         y_aux = yh
         y_gt = yh[:, 0:1] - yh[:, 1:2]
 
@@ -83,7 +83,7 @@ class BaselineSupervisedRegressor(pl.LightningModule):
         optimizer = torch.optim.Adam(self.model.parameters(), lr=self.optconf.lr)
 
         lr_scheduler = lr_sch[self.optconf.lr_sch](
-            optimizer, mode="min", patience=20, factor=0.5, verbose=True, min_lr=1e-6
+            optimizer, mode="min", patience=15, factor=0.5, verbose=True, min_lr=1e-5
         )
         return {
             "optimizer": optimizer,

@@ -1,0 +1,3 @@
+defaults:
+  - model: sch_emb_2
+  - trainer: train_sch_big

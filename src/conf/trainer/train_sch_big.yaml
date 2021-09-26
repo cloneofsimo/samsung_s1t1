@@ -12,7 +12,7 @@ checkpoint_dir: "checkpoints"
 check_val_freq: 1
 fast_dev_run: False
 epochs: 1000
-gpus: [0]
+gpus: [0, 1]
 save_top_k: 3
 
 criterion:

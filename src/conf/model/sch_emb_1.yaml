@@ -1,0 +1,11 @@
+name: sch_emb
+hidden_channels: 512
+n_layers: 8
+n_ff: 512
+skip_connection: res
+dropout: 0.05
+positional: true
+pos_offset: 32
+edge_mlp: true
+aromatic: false
+ar_offset: 32

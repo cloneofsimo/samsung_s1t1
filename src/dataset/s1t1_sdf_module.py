@@ -25,8 +25,9 @@ class SDFDataModule(pl.LightningDataModule):
         )
 
         self.test_dataset = SDFDataset(
-            dataset_path=self.data_path + f"/split_{self.fold_idx}/data_test.txt",
-            sdf_path=self.data_path + f"/train_sdf/",
+            dataset_path=self.data_path + f"/split_sdf_{self.fold_idx}/data_test.txt",
+            sdf_path=self.data_path + f"/test_sdf/",
+            train=True,
         )
 
     def train_dataloader(self):
@@ -40,7 +41,7 @@ class SDFDataModule(pl.LightningDataModule):
     def val_dataloader(self):
         return DataLoader(
             self.val_dataset,
-            batch_size=self.batch_size,
+            batch_size=self.batch_size * 2,
             shuffle=False,
             num_workers=self.num_workers,
         )
@@ -48,7 +49,7 @@ class SDFDataModule(pl.LightningDataModule):
     def test_dataloader(self):
         return DataLoader(
             self.test_dataset,
-            batch_size=self.batch_size,
+            batch_size=self.batch_size * 2,
             shuffle=False,
             num_workers=self.num_workers,
         )

@@ -34,6 +34,7 @@ ATOM_IDX = "ATOM_IDX"
 MAX_ATOM_IDX = 20
 PAD_IDX = 0
 BOND_OFFSET = 22
+AROMA_OFFSET = 30
 CLS_IDX = 40
 BOND_DIV = 10.0
 
@@ -41,29 +42,33 @@ BOND_DIV = 10.0
 def Rotate_Phi(pos):
     # Batch Rotate around z-axis. pos : N, 3
     phi = random.random() * 3.141592 * 2
-    rot_mat = torch.tensor([[math.cos(phi), -math.sin(phi), 0],
-                        [math.sin(phi), math.cos(phi), 0],
-                        [0, 0, 1]])
+    rot_mat = torch.tensor(
+        [
+            [math.cos(phi), -math.sin(phi), 0],
+            [math.sin(phi), math.cos(phi), 0],
+            [0, 0, 1],
+        ]
+    )
     pos = pos @ rot_mat
-    return pos 
+    return pos
+
 
 def Rotate_Theta(pos):
     # Batch Rotate around y-axis. pos : N, 3
     theta = random.random() * 3.141592 * 2
-    rot_mat = torch.tensor([[math.cos(theta), 0, math.sin(theta)],
-                            [0, 1, 0],
-                            [-math.sin(theta), 0, math.cos(theta)]])
+    rot_mat = torch.tensor(
+        [
+            [math.cos(theta), 0, math.sin(theta)],
+            [0, 1, 0],
+            [-math.sin(theta), 0, math.cos(theta)],
+        ]
+    )
     pos = pos @ rot_mat
     return pos
 
 
 class SDFDataset(Dataset):
-    def __init__(
-        self,
-        dataset_path,
-        sdf_path,
-        train=True,
-    ):
+    def __init__(self, dataset_path, sdf_path, train=True, return_aroma=True):
 
         super().__init__()
         self.dataset_path = dataset_path
@@ -81,6 +86,7 @@ class SDFDataset(Dataset):
         self.data_list = data_list
         self.sdf_paths = [sdf_path + x[0] + ".sdf" for x in data_list]
         self.train = train
+        self.return_aroma = return_aroma
 
     def len(self):
         return len(self.data_list)
@@ -89,22 +95,25 @@ class SDFDataset(Dataset):
 
         line = self.data_list[idx]
         path = line[0]
+        # p#rint(line)
         target_aux = torch.tensor([float(line[2]), float(line[3])])
+
         target = torch.tensor([float(line[4])])
 
         # Create Edge data (with edge index)
-        atom_list, atom_pos, mol = self._get_sdf_data(idx)
+        atom_list, atom_pos, mol, aroma_list = self._get_sdf_data(idx)
         atom_pos = atom_pos / BOND_DIV
         atom_pos = atom_pos - atom_pos.mean(dim=0)
 
         if self.train:
             atom_pos = Rotate_Phi(Rotate_Theta(atom_pos))
             atom_pos = atom_pos + torch.randn((1, 3)) * 0.05
-            #atom_pos = atom_pos * torch.exp(torch.randn((1, 3)) * 0.05)
+            # atom_pos = atom_pos * torch.exp(torch.randn((1, 3)) * 0.05)
 
         N = len(atom_list)
 
         x1 = torch.tensor(atom_list).long()
+        x_aroma = torch.tensor(aroma_list).long()
         # pos = torch.tensor(atom_pos).float()
 
         row, col, edge_type = [], [], []
@@ -135,6 +144,7 @@ class SDFDataset(Dataset):
             idx=idx,
             x=x1,
             pos=atom_pos,
+            ar=x_aroma,
         )
         return data
 
@@ -144,15 +154,19 @@ class SDFDataset(Dataset):
         mol = mols[-1]
         pos = []
         symb = []
+        aroma = []
         for i in range(0, mol.GetNumAtoms()):
             poss = mol.GetConformer().GetAtomPosition(i)
-            syms = mol.GetAtomWithIdx(i).GetSymbol()
-            symb.append(syms)
+            ato = mol.GetAtomWithIdx(i)
+            aroma.append(0)
+            symb.append(ato.GetSymbol())
             pos.append(torch.tensor([poss.x, poss.y, poss.z]))
+
+        for a in mol.GetAromaticAtoms():
+            i = a.GetIdx()
+            aroma[i] = 1
 
         atoms = [ATOM_DICT.get(a, MAX_ATOM_IDX) + 1 for a in symb]
         pos = torch.stack(pos)
 
-        
-
-        return atoms, pos, mol
+        return atoms, pos, mol, aroma
